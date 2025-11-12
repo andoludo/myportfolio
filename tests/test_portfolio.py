@@ -18,22 +18,19 @@ from myportfolio.models import (
     Portfolio,
 )
 
-DATABASE_PATH = "/media/aan/T7/bearish_db/new.db"
 
-
-def test_portfolio() -> None:
+def test_portfolio(bear_db: Path) -> None:
     assets = [
         Asset(symbol="NVDA", value=2070),
         Asset(symbol="GOOG", value=1098),
         Asset(symbol="MSFT", value=1624),
         Asset(symbol="UNH", value=1421),
         Asset(symbol="LLY", value=2440),
-        Asset(symbol="WMT", value=1024),
         Asset(symbol="LMT", value=1941),
         Asset(symbol="MRK", value=1731),
     ]
     market = Market(symbol="^GSPC")
-    bearish_db = BearishDb(database_path=Path(DATABASE_PATH))
+    bearish_db = BearishDb(database_path=bear_db)
     portfolio = Portfolio(
         assets=assets,
         market=market,
@@ -44,19 +41,18 @@ def test_portfolio() -> None:
     assert kpi
 
 
-def test_new_portfolio() -> None:
+def test_new_portfolio(bear_db: Path) -> None:
     assets = [
         NewAsset(symbol="NVDA"),
         NewAsset(symbol="GOOG"),
         NewAsset(symbol="MSFT"),
         NewAsset(symbol="UNH"),
         NewAsset(symbol="LLY"),
-        NewAsset(symbol="WMT"),
         NewAsset(symbol="LMT"),
         NewAsset(symbol="MRK"),
     ]
     market = Market(symbol="^GSPC")
-    bearish_db = BearishDb(database_path=Path(DATABASE_PATH))
+    bearish_db = BearishDb(database_path=Path(bear_db))
     portfolio = Portfolio(
         assets=assets,
         market=market,
@@ -69,19 +65,18 @@ def test_new_portfolio() -> None:
     assert optimized_portfolio
 
 
-def test_portfolio_frontier() -> None:
+def test_portfolio_frontier(bear_db: Path) -> None:
     assets = [
         Asset(symbol="NVDA", value=2070),
         Asset(symbol="GOOG", value=1098),
         Asset(symbol="MSFT", value=1624),
         Asset(symbol="UNH", value=1421),
         Asset(symbol="LLY", value=2440),
-        Asset(symbol="WMT", value=1024),
         Asset(symbol="LMT", value=1941),
         Asset(symbol="MRK", value=1731),
     ]
     market = Market(symbol="^GSPC")
-    bearish_db = BearishDb(database_path=Path(DATABASE_PATH))
+    bearish_db = BearishDb(database_path=Path(bear_db))
     figure = go.Figure()
     for time_period in [
         TimePeriodValue(type="years", value=5),
@@ -97,7 +92,7 @@ def test_portfolio_frontier() -> None:
     assert True
 
 
-def test_add_optimized() -> None:
+def test_add_optimized(bear_db: Path) -> None:
     figure = go.Figure()
     assets = [
         Asset(symbol="NVDA", value=2070),
@@ -111,7 +106,7 @@ def test_add_optimized() -> None:
     ]
     market = Market(symbol="^GSPC")
     time_period = TimePeriodValue(type="years", value=1)
-    bearish_db = BearishDb(database_path=Path(DATABASE_PATH))
+    bearish_db = BearishDb(database_path=bear_db)
     portfolio = Portfolio(
         assets=assets, market=market, bearish_db=bearish_db, time_period=time_period
     )
@@ -130,11 +125,4 @@ def test_add_optimized() -> None:
     kpi = portfolio_final.compute_kpi()
     figure = kpi.plot(figure)
     figure.show()
-    # figure = go.Figure()
-    # for time_period in [TimePeriodValue(type="years", value=5), TimePeriodValue(type="years", value=1)]:
-    #     portfolio = Portfolio(assets=assets, market=market, bearish_db=bearish_db,
-    #                           time_period=time_period)
-    #     kpi = portfolio.compute_kpi()
-    #
-    #     figure = kpi.plot(figure)
-    # figure.show()
+    assert figure

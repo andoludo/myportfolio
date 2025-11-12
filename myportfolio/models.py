@@ -23,6 +23,9 @@ class BaseAsset(BaseBaseModel):
     symbol: str
     data: pd.Series = Field(default_factory=pd.Series)
 
+    def valid(self) -> bool:
+        return not self.data.empty
+
     def init(
         self,
         bearish_db: BearishDb,
@@ -32,9 +35,11 @@ class BaseAsset(BaseBaseModel):
     ) -> None:
         data = self._read_data(bearish_db=bearish_db, months=months)
         latest_date = data.index.max()
-        self.data = data[
-            data.index >= latest_date - pd.DateOffset(**time_period._to_dict())
-        ].copy()
+        if not data.empty:
+            self.data = data[
+                data.index >= latest_date - pd.DateOffset(**time_period._to_dict())
+            ].copy()
+
         if total_value:
             self._compute_weight(total_value)
 
@@ -212,6 +217,8 @@ class Portfolio(BaseModel):
     def _compute_beta(self, market_data: pd.Series) -> float:
         beta = 0
         for asset in self.assets:
+            if not asset.valid():
+                continue
             if not isinstance(asset, Asset):
                 continue
             beta += asset.weight * asset.compute_beta(market_data)  # type: ignore
