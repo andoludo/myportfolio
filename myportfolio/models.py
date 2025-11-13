@@ -308,7 +308,7 @@ class PortfolioDescription(BaseModel):
 
     @model_validator(mode="after")
     def _portfolio_validator(self) -> Self:
-        if self.new_assets is not None and self.amount is None:
+        if self.new_assets and self.amount is None:
             raise ValueError("Amount must be provided")
         return self
 
