@@ -89,13 +89,12 @@ def test_portfolio_frontier(bear_db: Path) -> None:
         )
         kpi = portfolio.compute_kpi()
 
-        figure = kpi.plot(figure)
+        figure = kpi.plot(figure, "new")
     figure.show()
     assert True
 
 
 def test_add_optimized(bear_db: Path) -> None:
-    figure = go.Figure()
     assets = [
         Asset(symbol="NVDA", value=2070),
         Asset(symbol="GOOG", value=1098),
@@ -115,14 +114,12 @@ def test_add_optimized(bear_db: Path) -> None:
     portfolio_description = PortfolioDescription(
         current_assets=assets, new_assets=new_assets, amount=5000
     )
-    figure = portfolio_optimize(bearish_db, figure, portfolio_description)
+    figure = portfolio_optimize(bearish_db, portfolio_description)
     figure.show()
     assert figure
 
 
 def test_only_new_assets(bear_db: Path) -> None:
-    figure = go.Figure()
-
     bearish_db = BearishDb(database_path=bear_db)
     new_assets = [
         NewAsset(symbol="VZ"),
@@ -130,6 +127,6 @@ def test_only_new_assets(bear_db: Path) -> None:
         NewAsset(symbol="AAPL"),
     ]
     portfolio_description = PortfolioDescription(new_assets=new_assets, amount=5000)
-    figure = portfolio_optimize(bearish_db, figure, portfolio_description)
+    figure = portfolio_optimize(bearish_db, portfolio_description)
     figure.show()
     assert figure

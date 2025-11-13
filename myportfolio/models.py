@@ -122,12 +122,13 @@ class PortfolioPoint(BaseBaseModel):
     expecter_return: float
     volatility: float
     weights: Dict[str, float] = Field(default_factory=dict)
+    sharpe_ratio: Optional[float] = None
+    beta: Optional[float] = None
 
 
 class PortfolioKpi(PortfolioPoint):
     time_period: TimePeriodValue
     sharpe_ratio: float
-    beta: Optional[float] = None
     efficient_frontier: pd.DataFrame = Field(default_factory=pd.DataFrame)
 
     def name(self) -> str:
@@ -138,12 +139,14 @@ class PortfolioKpi(PortfolioPoint):
             expecter_return=self.expecter_return,
             volatility=self.volatility,
             weights=self.weights,
+            beta=self.beta,
+            sharpe_ratio=self.sharpe_ratio,
         )
 
-    def plot(self, fig: go.Figure) -> go.Figure:
+    def plot(self, fig: go.Figure, name: str) -> go.Figure:
         if not self.efficient_frontier.empty:
-            fig = plot(fig, self.efficient_frontier, name=self.name())
-            fig = add_point(fig, self.to_point(), name=self.name())
+            fig = plot(fig, self.efficient_frontier, name=f"{name} ({self.name()})")
+            fig = add_point(fig, self.to_point(), name=f"{name} ({self.name()})")
         return fig
 
 
@@ -315,38 +318,55 @@ class PortfolioDescription(BaseModel):
 
 def portfolio_optimize(
     bearish_db: BearishDb,
-    figure: go.Figure,
     portfolio_description: "PortfolioDescription",
 ) -> go.Figure:
+    figure = go.Figure()
     portfolio: Optional[Portfolio] = None
-    if portfolio_description.current_assets:
-        portfolio = Portfolio(
-            assets=portfolio_description.current_assets,
-            market=portfolio_description.market,
-            bearish_db=bearish_db,
-            time_period=portfolio_description.time_period,
-        )
-        kpi = portfolio.compute_kpi()
-        figure = kpi.plot(figure)
-    if portfolio_description.new_assets:
-        portfolio_new = Portfolio(
-            assets=portfolio_description.new_assets,
-            market=portfolio_description.market,
-            bearish_db=bearish_db,
-            value=portfolio_description.amount,
-            time_period=portfolio_description.time_period,
-        )
-        optimized_portfolio = portfolio_new.max_sharpe()
-        if portfolio:
-            portfolio_final = portfolio.add(optimized_portfolio)
-            kpi = portfolio_final.compute_kpi()
-        else:
-            new_portfolio = Portfolio(
-                assets=optimized_portfolio.assets,
+    for time_period in [
+        TimePeriodValue(type="years", value=1),
+        TimePeriodValue(type="years", value=5),
+        TimePeriodValue(type="months", value=6),
+    ]:
+        if portfolio_description.current_assets:
+            portfolio = Portfolio(
+                assets=portfolio_description.current_assets,
                 market=portfolio_description.market,
                 bearish_db=bearish_db,
-                time_period=portfolio_description.time_period,
+                time_period=time_period,
             )
-            kpi = new_portfolio.compute_kpi()
-        figure = kpi.plot(figure)
+            kpi = portfolio.compute_kpi()
+            figure = kpi.plot(figure, "Current")
+        if portfolio_description.new_assets:
+            portfolio_new = Portfolio(
+                assets=portfolio_description.new_assets,
+                market=portfolio_description.market,
+                bearish_db=bearish_db,
+                value=portfolio_description.amount,
+                time_period=time_period,
+            )
+            optimized_portfolio = portfolio_new.max_sharpe()
+            if portfolio:
+                portfolio_final = portfolio.add(optimized_portfolio)
+                kpi = portfolio_final.compute_kpi()
+            else:
+                new_portfolio = Portfolio(
+                    assets=optimized_portfolio.assets,
+                    market=portfolio_description.market,
+                    bearish_db=bearish_db,
+                    time_period=time_period,
+                )
+                kpi = new_portfolio.compute_kpi()
+            figure = kpi.plot(figure, "New")
+    figure.update_layout(
+        title="Efficient Frontier",
+        xaxis_title="Volatility (Standard Deviation)",
+        yaxis_title="Expected Return",
+        template="plotly_white",
+        font={"size": 14},
+        hovermode="closest",
+        margin={"l": 70, "r": 30, "t": 60, "b": 60},
+    )
+
+    figure.update_xaxes(tickformat=".1%")
+    figure.update_yaxes(tickformat=".1%")
     return figure
