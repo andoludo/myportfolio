@@ -1,6 +1,6 @@
 from datetime import date
 from functools import cached_property
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Self
 
 import numpy as np
 import pandas as pd  # type: ignore
@@ -295,3 +295,58 @@ class Portfolio(BaseModel):
             assets=assets,
             time_period=self.time_period,
         )
+
+
+class PortfolioDescription(BaseModel):
+    current_assets: Optional[List[Asset]] = None
+    new_assets: Optional[List[NewAsset]] = None
+    market: Market = Field(default_factory=lambda: Market(symbol="^GSPC"))
+    time_period: TimePeriodValue = Field(
+        default_factory=lambda: TimePeriodValue(type="years", value=1)
+    )
+    amount: Optional[float] = None
+
+    @model_validator(mode="after")
+    def _portfolio_validator(self) -> Self:
+        if self.new_assets is not None and self.amount is None:
+            raise ValueError("Amount must be provided")
+        return self
+
+
+def portfolio_optimize(
+    bearish_db: BearishDb,
+    figure: go.Figure,
+    portfolio_description: "PortfolioDescription",
+) -> go.Figure:
+    portfolio: Optional[Portfolio] = None
+    if portfolio_description.current_assets:
+        portfolio = Portfolio(
+            assets=portfolio_description.current_assets,
+            market=portfolio_description.market,
+            bearish_db=bearish_db,
+            time_period=portfolio_description.time_period,
+        )
+        kpi = portfolio.compute_kpi()
+        figure = kpi.plot(figure)
+    if portfolio_description.new_assets:
+        portfolio_new = Portfolio(
+            assets=portfolio_description.new_assets,
+            market=portfolio_description.market,
+            bearish_db=bearish_db,
+            value=portfolio_description.amount,
+            time_period=portfolio_description.time_period,
+        )
+        optimized_portfolio = portfolio_new.max_sharpe()
+        if portfolio:
+            portfolio_final = portfolio.add(optimized_portfolio)
+            kpi = portfolio_final.compute_kpi()
+        else:
+            new_portfolio = Portfolio(
+                assets=optimized_portfolio.assets,
+                market=portfolio_description.market,
+                bearish_db=bearish_db,
+                time_period=portfolio_description.time_period,
+            )
+            kpi = new_portfolio.compute_kpi()
+        figure = kpi.plot(figure)
+    return figure

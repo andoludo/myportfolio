@@ -16,6 +16,8 @@ from myportfolio.models import (
     TimePeriodValue,
     TimePeriodData,
     Portfolio,
+    PortfolioDescription,
+    portfolio_optimize,
 )
 
 
@@ -104,25 +106,30 @@ def test_add_optimized(bear_db: Path) -> None:
         Asset(symbol="LMT", value=1941),
         Asset(symbol="MRK", value=1731),
     ]
-    market = Market(symbol="^GSPC")
-    time_period = TimePeriodValue(type="years", value=1)
     bearish_db = BearishDb(database_path=bear_db)
-    portfolio = Portfolio(
-        assets=assets, market=market, bearish_db=bearish_db, time_period=time_period
+    new_assets = [
+        NewAsset(symbol="VZ"),
+        NewAsset(symbol="TSLA"),
+        NewAsset(symbol="AAPL"),
+    ]
+    portfolio_description = PortfolioDescription(
+        current_assets=assets, new_assets=new_assets, amount=5000
     )
-    kpi = portfolio.compute_kpi()
-    figure = kpi.plot(figure)
-    assets = [NewAsset(symbol="VZ"), NewAsset(symbol="TSLA"), NewAsset(symbol="AAPL")]
-    portfolio_new = Portfolio(
-        assets=assets,
-        market=market,
-        bearish_db=bearish_db,
-        value=5000,
-        time_period=time_period,
-    )
-    optimized_portfolio = portfolio_new.max_sharpe()
-    portfolio_final = portfolio.add(optimized_portfolio)
-    kpi = portfolio_final.compute_kpi()
-    figure = kpi.plot(figure)
+    figure = portfolio_optimize(bearish_db, figure, portfolio_description)
+    figure.show()
+    assert figure
+
+
+def test_only_new_assets(bear_db: Path) -> None:
+    figure = go.Figure()
+
+    bearish_db = BearishDb(database_path=bear_db)
+    new_assets = [
+        NewAsset(symbol="VZ"),
+        NewAsset(symbol="TSLA"),
+        NewAsset(symbol="AAPL"),
+    ]
+    portfolio_description = PortfolioDescription(new_assets=new_assets, amount=5000)
+    figure = portfolio_optimize(bearish_db, figure, portfolio_description)
     figure.show()
     assert figure
