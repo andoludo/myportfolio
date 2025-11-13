@@ -365,6 +365,8 @@ def portfolio_optimize(
         font={"size": 14},
         hovermode="closest",
         margin={"l": 70, "r": 30, "t": 60, "b": 60},
+        width=1200,
+        height=900,
     )
 
     figure.update_xaxes(tickformat=".1%")
